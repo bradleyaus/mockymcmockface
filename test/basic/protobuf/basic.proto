@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package test;
+
+option go_package = ".;test";
+
+service Test {
+    rpc Tester (Request) returns (Response);
+    rpc Tester2 (Request1) returns (Response1);
+}
+
+message Request {
+    string req = 1;
+}
+
+message Request1 {
+    string req = 1;
+}
+
+message Response {
+    string resp = 1;
+}
+
+message Response1 {
+    string resp = 1;
+}
