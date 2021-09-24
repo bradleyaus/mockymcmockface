@@ -1,0 +1,1 @@
+protoc --plugin=../../build/protoc-gen-mockymock --mockymock_out=server --mockymock_opt=template=../../server.tmpl -I . optional.proto --go-grpc_out=./ --go_out=./ --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative --experimental_allow_proto3_optional

@@ -3,13 +3,13 @@ package main
 import (
 	"github.com/bradleyaus/mockymcmockface/pkg/parser"
 	"github.com/bradleyaus/mockymcmockface/pkg/server_template"
-	"io/ioutil"
-	"log"
-	"os"
-
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/pluginpb"
+	"io/ioutil"
+	"log"
+	"os"
+	"strings"
 )
 
 func main() {
@@ -19,19 +19,31 @@ func main() {
 	// It passes all that is required for compilation through stdin
 	// The problem with that is it's difficult to quickly iterate on a solution
 	// So to make development easier/allow debugging, we can save the input from stdin to a file and then use that in a examples
-	os.MkdirAll("examples/protoc-gen-data/", os.ModePerm)
-	ioutil.WriteFile("examples/protoc-gen-data/input.dat", input, os.ModePerm)
+	ioutil.WriteFile("input.dat", input, os.ModePerm)
 
 	var req pluginpb.CodeGeneratorRequest
 	proto.Unmarshal(input, &req)
 
+	params := make(map[string]string)
+	for _, param := range strings.Split(req.GetParameter(), ",") {
+		split := strings.Split(param, "=")
+		params[split[0]] = split[1]
+	}
+
+	templatePath := "server.tmpl"
+	if params["template"] != "" {
+		templatePath = params["template"]
+	}
 
 	plugin := generate(&req, &server_template.Options{
 		TemplateName: "server.tmpl",
-		TemplatePath: "server.tmpl",
+		TemplatePath: templatePath,
 	})
 
-	out, err := proto.Marshal(plugin.Response())
+	resp := plugin.Response()
+	var supportedFeatures = uint64(pluginpb.CodeGeneratorResponse_FEATURE_PROTO3_OPTIONAL)
+	resp.SupportedFeatures = &supportedFeatures
+	out, err := proto.Marshal(resp)
 	if err != nil {
 		log.Fatalln("failed when marshaling response")
 	}
