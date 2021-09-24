@@ -1,42 +1,71 @@
-package server_template
+package main
 
 import (
+	"bytes"
 	"context"
-	"github.com/golang/protobuf/proto"
-	"google.golang.org/protobuf/runtime/protoiface"
+	"encoding/json"
+	"github.com/bradleyaus/mockymcmockface/pkg/responses"
+	pb "github.com/bradleyaus/mockymcmockface/examples/basic"
+	"github.com/golang/protobuf/jsonpb"
+	"google.golang.org/grpc"
 	"log"
 	"net"
-	"google.golang.org/grpc"
-	pb "github.com/bradleyaus/mockymcmockface/test/basic/grpc"
 )
 
-//This is just a file which is kept up to date with the template to make it easier to update the template with new features
 
+
+// This is just a file which is kept up to date with the server_template
+// 1. Makes it easier to understand what the server_template will do
+// 2. Makes it easier to examples ideas related to the server_template
+
+// For each parser, the server_template will add one of these types
 type TestService struct {
+	pb.UnimplementedTestServer
 
+	responseService *responses.ResponseService
 }
 
 func main() {
+
+	respService := responses.NewService()
+
 	//TODO: Param the address
-	lis, err := net.Listen("TCP", "localhost:5051")
+	addr := "localhost:5051"
+	log.Println("Listening on", addr)
+	lis, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Fatal("failed when listening", err)
+		log.Fatalln("failed when listening", err)
 	}
 
 	s := grpc.NewServer()
-	pb.RegisterTestServer(s, &TestService{})
+
+	//For each parser, the server_template will add one of these lines
+	pb.RegisterTestServer(s, &TestService{
+		responseService:         respService,
+	})
+
 	if err := s.Serve(lis); err != nil {
-		log.Fatal("failed when serving", err)
+		log.Fatalln("failed when serving", err)
 	}
 }
 
-func (t *TestService) Tester(context.Context, *pb.Request) (*pb.Response, error) {
+// For each method in each parser, the server_template will add one of these methods
+func (t *TestService) Tester(ctx context.Context, req *pb.Request) (resp *pb.Response, err error) {
+	r, err := t.responseService.GetResponse("Test", "Tester", req)
+	if err != nil {
+		log.Panicln("Error when getting response", "Test", "Tester")
+	}
 
+	resp = &pb.Response{}
 
-	msg := proto.Message{}
-
-	res := protoiface.MessageV1()
-	return &interface{}, nil
+	data, _ := json.Marshal(r.Data)
+	err = jsonpb.Unmarshal(bytes.NewReader(data), resp)
+	return resp, err
 }
 
-Tester2(context.Context, *pb.Request1) (*Response1, error)
+func (t *TestService) Tester2(context.Context, *pb.Request1) (resp *pb.Response1, err error) {
+	resp = &pb.Response1{}
+
+	err = jsonpb.Unmarshal(bytes.NewReader([]byte("examples")), resp)
+	return resp, nil
+}
